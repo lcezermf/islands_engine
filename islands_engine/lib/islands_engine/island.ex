@@ -2,12 +2,38 @@ defmodule IslandsEngine.Island do
   @moduledoc false
 
   alias __MODULE__
+  alias IslandsEngine.Coordinate
 
   @enforce_keys [:coordinates, :hit_coordinates]
   defstruct [:coordinates, :hit_coordinates]
 
   def new do
     %Island{coordinates: MapSet.new(), hit_coordinates: MapSet.new()}
+  end
+
+  def new(type, %Coordinate{} = upper_left) do
+    with [_ | _] = offsets <- offsets(type),
+         %MapSet{} = coordinates <- add_coordinates(offsets, upper_left) do
+      {:ok, %Island{coordinates: coordinates, hit_coordinates: MapSet.new()}}
+    else
+      error -> error
+    end
+  end
+
+  def add_coordinates(offsets, upper_left) do
+    Enum.reduce_while(offsets, MapSet.new(), fn offset, acc ->
+      add_coordinates(acc, upper_left, offset)
+    end)
+  end
+
+  defp add_coordinates(coordinates, %Coordinate{row: row, col: col}, {row_offset, col_offset}) do
+    case Coordinate.new(row + row_offset, col + col_offset) do
+      {:ok, coordinate} ->
+        {:cont, MapSet.put(coordinates, coordinate)}
+
+      {:error, :invalid_coordinate} ->
+        {:halt, {:error, :invalid_coordinate}}
+    end
   end
 
   defp offsets(:square), do: [{0, 0}, {0, 1}, {1, 0}, {1, 1}]
