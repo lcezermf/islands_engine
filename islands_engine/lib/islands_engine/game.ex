@@ -8,6 +8,7 @@ defmodule IslandsEngine.Game do
   alias IslandsEngine.Rules
 
   @players [:player1, :player2]
+  @timeout 60 * 60 * 24 * 1000
 
   # Public API
 
@@ -37,7 +38,7 @@ defmodule IslandsEngine.Game do
     player1 = %{name: name, board: Board.new(), guesses: Guesses.new()}
     player2 = %{name: nil, board: Board.new(), guesses: Guesses.new()}
 
-    {:ok, %{player1: player1, player2: player2, rules: %Rules{}}}
+    {:ok, %{player1: player1, player2: player2, rules: %Rules{}}, @timeout}
   end
 
   def handle_call({:set_islands, player}, _from, state) do
@@ -104,6 +105,12 @@ defmodule IslandsEngine.Game do
     end
   end
 
+  def handle_info(:timeout, state) do
+    {:stop, {:shutdown, :timeout}, state}
+  end
+
+  def create_via_tuple(name), do: {:via, Registry, {Registry.Game, name}}
+
   defp opponent(:player1), do: :player2
   defp opponent(:player2), do: :player1
 
@@ -111,7 +118,9 @@ defmodule IslandsEngine.Game do
 
   defp update_rules(state, rules), do: %{state | rules: rules}
 
-  defp reply_success(state, reply), do: {:reply, reply, state}
+  defp reply_success(state_data, reply) do
+    {:reply, reply, state_data, @timeout}
+  end
 
   defp player_board(state, player), do: Map.get(state, player).board
 
