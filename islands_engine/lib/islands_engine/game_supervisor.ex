@@ -12,7 +12,7 @@ defmodule IslandsEngine.GameSupervisor do
   end
 
   def stop_game(player_1_name) when is_binary(player_1_name) do
-    # :ets.delete(:game_state, player_1_name)
+    :ets.delete(:game_state, player_1_name)
     DynamicSupervisor.terminate_child(__MODULE__, pid_from_name(player_1_name))
   end
 
